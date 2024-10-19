@@ -123,6 +123,7 @@ class SuperEditorAndroidControlsController {
     this.expandedHandlesBuilder,
     this.magnifierBuilder,
     this.toolbarBuilder,
+    this.spellCheckerPopoverController,
     this.createOverlayControlsClipper,
   })  : collapsedHandleFocalPoint = collapsedHandleFocalPoint ?? LeaderLink(),
         upstreamHandleFocalPoint = upstreamHandleFocalPoint ?? LeaderLink(),
@@ -313,6 +314,16 @@ class SuperEditorAndroidControlsController {
   /// If [toolbarBuilder] is `null`, a default Android toolbar is displayed.
   final DocumentFloatingToolbarBuilder? toolbarBuilder;
 
+  final SpellCheckerPopoverController? spellCheckerPopoverController;
+
+  void hideSpellCheckerPopover() {
+    spellCheckerPopoverController?.hide();
+  }
+
+  void showSpellCheckerPopover(DocumentSelection selection) {
+    spellCheckerPopoverController?.show(selection);
+  }
+
   /// Creates a clipper that restricts where the toolbar and magnifier can
   /// appear in the overlay.
   ///
@@ -408,7 +419,6 @@ class AndroidDocumentTouchInteractor extends StatefulWidget {
     required this.openSoftwareKeyboard,
     required this.scrollController,
     this.contentTapHandler,
-    this.spellCheckerPopoverController,
     this.dragAutoScrollBoundary = const AxisOffset.symmetric(54),
     required this.dragHandleAutoScroller,
     this.showDebugPaint = false,
@@ -428,8 +438,6 @@ class AndroidDocumentTouchInteractor extends StatefulWidget {
   /// Optional handler that responds to taps on content, e.g., opening
   /// a link when the user taps on text with a link attribution.
   final ContentTapDelegate? contentTapHandler;
-
-  final SpellCheckerPopoverController? spellCheckerPopoverController;
 
   final ScrollController scrollController;
 
@@ -980,7 +988,7 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
   void _showAndHideEditingControlsAfterTapSelection({
     required bool didTapOnExistingSelection,
   }) {
-    widget.spellCheckerPopoverController?.hide();
+    _controlsController!.hideSpellCheckerPopover();
     if (widget.selection.value == null) {
       // There's no selection. Hide all controls.
       _controlsController!
@@ -1014,7 +1022,7 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
       } else {
         // The user tapped somewhere else in the document. Hide the toolbar.
         _controlsController!.hideToolbar();
-        widget.spellCheckerPopoverController?.show(widget.selection.value!);
+        _controlsController!.showSpellCheckerPopover(widget.selection.value!);
       }
     }
   }

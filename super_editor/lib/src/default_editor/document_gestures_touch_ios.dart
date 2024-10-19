@@ -122,6 +122,7 @@ class SuperEditorIosControlsController {
     FloatingCursorController? floatingCursorController,
     this.magnifierBuilder,
     this.toolbarBuilder,
+    this.spellCheckerPopoverController,
     this.createOverlayControlsClipper,
   }) : floatingCursorController = floatingCursorController ?? FloatingCursorController();
 
@@ -206,6 +207,16 @@ class SuperEditorIosControlsController {
   /// If [toolbarBuilder] is `null`, a default iOS toolbar is displayed.
   final DocumentFloatingToolbarBuilder? toolbarBuilder;
 
+  final SpellCheckerPopoverController? spellCheckerPopoverController;
+
+  void hideSpellCheckerPopover() {
+    spellCheckerPopoverController?.hide();
+  }
+
+  void showSpellCheckerPopover(DocumentSelection selection) {
+    spellCheckerPopoverController?.show(selection);
+  }
+
   /// Creates a clipper that restricts where the toolbar and magnifier can
   /// appear in the overlay.
   ///
@@ -250,7 +261,6 @@ class IosDocumentTouchInteractor extends StatefulWidget {
     required this.dragHandleAutoScroller,
     this.contentTapHandler,
     this.dragAutoScrollBoundary = const AxisOffset.symmetric(54),
-    this.spellCheckerPopoverController,
     this.showDebugPaint = false,
     this.child,
   }) : super(key: key);
@@ -279,8 +289,6 @@ class IosDocumentTouchInteractor extends StatefulWidget {
   /// The default value is `54.0` pixels for both the leading and trailing
   /// edges.
   final AxisOffset dragAutoScrollBoundary;
-
-  final SpellCheckerPopoverController? spellCheckerPopoverController;
 
   final bool showDebugPaint;
 
@@ -640,9 +648,8 @@ class _IosDocumentTouchInteractorState extends State<IosDocumentTouchInteractor>
     _tapDownLongPressTimer?.cancel();
     _controlsController!
       ..hideMagnifier()
-      ..blinkCaret();
-
-    widget.spellCheckerPopoverController?.hide();
+      ..blinkCaret()
+      ..hideSpellCheckerPopover();
 
     if (_wasScrollingOnTapDown) {
       // The scrollable was scrolling when the user touched down. We expect that the
@@ -711,7 +718,7 @@ class _IosDocumentTouchInteractorState extends State<IosDocumentTouchInteractor>
       }
 
       if (!didTapOnExistingSelection) {
-        widget.spellCheckerPopoverController?.show(DocumentSelection.collapsed(position: adjustedSelectionPosition));
+        _controlsController!.showSpellCheckerPopover(DocumentSelection.collapsed(position: adjustedSelectionPosition));
       }
 
       final tappedComponent = _docLayout.getComponentByNodeId(adjustedSelectionPosition.nodeId)!;

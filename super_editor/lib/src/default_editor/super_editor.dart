@@ -128,7 +128,6 @@ class SuperEditor extends StatefulWidget {
     this.selectorHandlers,
     this.gestureMode,
     this.contentTapDelegateFactory = superEditorLaunchLinkTapHandlerFactory,
-    this.spellCheckerPopoverController,
     this.selectionLayerLinks,
     this.documentUnderlayBuilders = const [],
     this.documentOverlayBuilders = defaultSuperEditorDocumentOverlayBuilders,
@@ -286,7 +285,7 @@ class SuperEditor extends StatefulWidget {
   ///
   /// The `SpellingAndGrammarPlugin` provides a default implementation for
   /// a [SpellCheckerPopoverDelegate].
-  final SpellCheckerPopoverController? spellCheckerPopoverController;
+  //final SpellCheckerPopoverController? spellCheckerPopoverController;
 
   /// Leader links that connect leader widgets near the user's selection
   /// to carets, handles, and other things that want to follow the selection.
@@ -871,7 +870,6 @@ class SuperEditorState extends State<SuperEditor> {
           selection: editContext.composer.selectionNotifier,
           openSoftwareKeyboard: _openSoftareKeyboard,
           contentTapHandler: _contentTapDelegate,
-          spellCheckerPopoverController: widget.spellCheckerPopoverController,
           scrollController: _scrollController,
           dragHandleAutoScroller: _dragHandleAutoScroller,
           showDebugPaint: widget.debugPaint.gestures,
@@ -887,7 +885,6 @@ class SuperEditorState extends State<SuperEditor> {
           contentTapHandler: _contentTapDelegate,
           scrollController: _scrollController,
           dragHandleAutoScroller: _dragHandleAutoScroller,
-          spellCheckerPopoverController: widget.spellCheckerPopoverController,
           showDebugPaint: widget.debugPaint.gestures,
         );
     }
