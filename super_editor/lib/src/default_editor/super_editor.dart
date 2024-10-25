@@ -20,7 +20,6 @@ import 'package:super_editor/src/default_editor/document_gestures_touch_ios.dart
 import 'package:super_editor/src/default_editor/document_scrollable.dart';
 import 'package:super_editor/src/default_editor/layout_single_column/_styler_composing_region.dart';
 import 'package:super_editor/src/default_editor/list_items.dart';
-import 'package:super_editor/src/default_editor/spelling_and_grammar/spell_checker_popover_controller.dart';
 import 'package:super_editor/src/default_editor/tasks.dart';
 import 'package:super_editor/src/infrastructure/_logging.dart';
 import 'package:super_editor/src/infrastructure/content_layers.dart';
@@ -116,6 +115,8 @@ class SuperEditor extends StatefulWidget {
     this.documentLayoutKey,
     Stylesheet? stylesheet,
     this.customStylePhases = const [],
+    this.prependedStylePhases = const [],
+    this.appendedStylePhases = const [],
     List<ComponentBuilder>? componentBuilders,
     SelectionStyles? selectionStyle,
     this.selectionPolicies = const SuperEditorSelectionPolicies(),
@@ -235,6 +236,9 @@ class SuperEditor extends StatefulWidget {
   /// table styleable. To accomplish this, you add a custom style phase that
   /// knows how to interpret and apply table styles for your visual table component.
   final List<SingleColumnLayoutStylePhase> customStylePhases;
+
+  final List<SingleColumnLayoutStylePhase> prependedStylePhases;
+  final List<SingleColumnLayoutStylePhase> appendedStylePhases;
 
   /// The `SuperEditor` input source, e.g., keyboard or Input Method Engine.
   final TextInputSource? inputSource;
@@ -591,6 +595,7 @@ class SuperEditorState extends State<SuperEditor> {
       document: document,
       componentBuilders: widget.componentBuilders,
       pipeline: [
+        ...widget.prependedStylePhases,
         _docStylesheetStyler,
         _docLayoutPerComponentBlockStyler,
         ...widget.customStylePhases,
@@ -603,6 +608,7 @@ class SuperEditorState extends State<SuperEditor> {
         // Selection changes are very volatile. Put that phase last
         // to minimize view model recalculations.
         _docLayoutSelectionStyler,
+        ...widget.appendedStylePhases,
       ],
     );
 
@@ -857,7 +863,13 @@ class SuperEditorState extends State<SuperEditor> {
           getDocumentLayout: () => editContext.documentLayout,
           selectionChanges: editContext.composer.selectionChanges,
           selectionNotifier: editContext.composer.selectionNotifier,
-          contentTapHandler: _contentTapDelegate,
+          contentTapHandlers: [
+            if (_contentTapDelegate != null) //
+              _contentTapDelegate!,
+            for (final plugin in widget.plugins)
+              if (plugin.contentTapDelegate != null) //
+                plugin.contentTapDelegate!,
+          ],
           autoScroller: _autoScrollController,
           showDebugPaint: widget.debugPaint.gestures,
         );
@@ -869,7 +881,13 @@ class SuperEditorState extends State<SuperEditor> {
           getDocumentLayout: () => editContext.documentLayout,
           selection: editContext.composer.selectionNotifier,
           openSoftwareKeyboard: _openSoftareKeyboard,
-          contentTapHandler: _contentTapDelegate,
+          contentTapHandlers: [
+            if (_contentTapDelegate != null) //
+              _contentTapDelegate!,
+            for (final plugin in widget.plugins)
+              if (plugin.contentTapDelegate != null) //
+                plugin.contentTapDelegate!,
+          ],
           scrollController: _scrollController,
           dragHandleAutoScroller: _dragHandleAutoScroller,
           showDebugPaint: widget.debugPaint.gestures,
@@ -882,7 +900,13 @@ class SuperEditorState extends State<SuperEditor> {
           getDocumentLayout: () => editContext.documentLayout,
           selection: editContext.composer.selectionNotifier,
           openSoftwareKeyboard: _openSoftareKeyboard,
-          contentTapHandler: _contentTapDelegate,
+          contentTapHandlers: [
+            if (_contentTapDelegate != null) //
+              _contentTapDelegate!,
+            for (final plugin in widget.plugins)
+              if (plugin.contentTapDelegate != null) //
+                plugin.contentTapDelegate!,
+          ],
           scrollController: _scrollController,
           dragHandleAutoScroller: _dragHandleAutoScroller,
           showDebugPaint: widget.debugPaint.gestures,
@@ -1138,6 +1162,8 @@ abstract class SuperEditorPlugin {
 
   /// Additional overlay [SuperEditorLayerBuilder]s that will be added to a given [SuperEditor].
   List<SuperEditorLayerBuilder> get documentOverlayBuilders => [];
+
+  ContentTapDelegate? get contentTapDelegate => null;
 }
 
 /// A collection of policies that dictate how a [SuperEditor]'s selection will change

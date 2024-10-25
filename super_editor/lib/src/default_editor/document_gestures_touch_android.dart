@@ -13,7 +13,6 @@ import 'package:super_editor/src/core/document_layout.dart';
 import 'package:super_editor/src/core/document_selection.dart';
 import 'package:super_editor/src/core/edit_context.dart';
 import 'package:super_editor/src/core/editor.dart';
-import 'package:super_editor/src/default_editor/spelling_and_grammar/spell_checker_popover_controller.dart';
 import 'package:super_editor/src/default_editor/super_editor.dart';
 import 'package:super_editor/src/default_editor/text_tools.dart';
 import 'package:super_editor/src/document_operations/selection_operations.dart';
@@ -123,7 +122,6 @@ class SuperEditorAndroidControlsController {
     this.expandedHandlesBuilder,
     this.magnifierBuilder,
     this.toolbarBuilder,
-    this.spellCheckerPopoverController,
     this.createOverlayControlsClipper,
   })  : collapsedHandleFocalPoint = collapsedHandleFocalPoint ?? LeaderLink(),
         upstreamHandleFocalPoint = upstreamHandleFocalPoint ?? LeaderLink(),
@@ -260,6 +258,13 @@ class SuperEditorAndroidControlsController {
     }
   }
 
+  ValueListenable<bool> get areSelectionHandlesAllowed => _areSelectionHandlesAllowed;
+  final _areSelectionHandlesAllowed = ValueNotifier<bool>(true);
+
+  void allowSelectionHandles() => _areSelectionHandlesAllowed.value = true;
+
+  void preventSelectionHandles() => _areSelectionHandlesAllowed.value = false;
+
   /// (Optional) Builder to create the visual representation of the expanded drag handles.
   ///
   /// If [expandedHandlesBuilder] is `null`, default Android handles are displayed.
@@ -313,16 +318,6 @@ class SuperEditorAndroidControlsController {
   ///
   /// If [toolbarBuilder] is `null`, a default Android toolbar is displayed.
   final DocumentFloatingToolbarBuilder? toolbarBuilder;
-
-  final SpellCheckerPopoverController? spellCheckerPopoverController;
-
-  void hideSpellCheckerPopover() {
-    spellCheckerPopoverController?.hide();
-  }
-
-  void showSpellCheckerPopover(DocumentSelection selection) {
-    spellCheckerPopoverController?.show(selection);
-  }
 
   /// Creates a clipper that restricts where the toolbar and magnifier can
   /// appear in the overlay.
@@ -401,6 +396,7 @@ class SuperEditorAndroidHandlesDocumentLayerBuilder implements SuperEditorLayerB
         ]);
       },
       caretWidth: caretWidth,
+      areSelectionHandlesAllowed: SuperEditorAndroidControlsScope.rootOf(context).areSelectionHandlesAllowed,
       caretColor: caretColor,
     );
   }
@@ -418,7 +414,7 @@ class AndroidDocumentTouchInteractor extends StatefulWidget {
     required this.selection,
     required this.openSoftwareKeyboard,
     required this.scrollController,
-    this.contentTapHandler,
+    this.contentTapHandlers,
     this.dragAutoScrollBoundary = const AxisOffset.symmetric(54),
     required this.dragHandleAutoScroller,
     this.showDebugPaint = false,
@@ -437,7 +433,9 @@ class AndroidDocumentTouchInteractor extends StatefulWidget {
 
   /// Optional handler that responds to taps on content, e.g., opening
   /// a link when the user taps on text with a link attribution.
-  final ContentTapDelegate? contentTapHandler;
+  /// Optional handler that responds to taps on content, e.g., opening
+  /// a link when the user taps on text with a link attribution.
+  final List<ContentTapDelegate>? contentTapHandlers;
 
   final ScrollController scrollController;
 
@@ -796,6 +794,23 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
     // Stop waiting for a long-press to start.
     _tapDownLongPressTimer?.cancel();
 
+    editorGesturesLog.info("Tap down on document");
+    final docOffset = _getDocumentOffsetFromGlobalOffset(details.globalPosition);
+    editorGesturesLog.fine(" - document offset: $docOffset");
+    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
+    editorGesturesLog.fine(" - tapped document position: $docPosition");
+
+    if (widget.contentTapHandlers != null && docPosition != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final result = handler.onTap(docPosition);
+        if (result == TapHandlingInstruction.halt) {
+          // The custom tap handler doesn't want us to react at all
+          // to the tap.
+          return;
+        }
+      }
+    }
+
     // Cancel any on-going long-press.
     if (_isLongPressInProgress) {
       _longPressStrategy = null;
@@ -809,21 +824,6 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
       // touch down stopped the scrolling momentum. We don't want to take any further
       // action on this touch event. The user will tap again to change the selection.
       return;
-    }
-
-    editorGesturesLog.info("Tap down on document");
-    final docOffset = _getDocumentOffsetFromGlobalOffset(details.globalPosition);
-    editorGesturesLog.fine(" - document offset: $docOffset");
-    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
-    editorGesturesLog.fine(" - tapped document position: $docPosition");
-
-    if (widget.contentTapHandler != null && docPosition != null) {
-      final result = widget.contentTapHandler!.onTap(docPosition);
-      if (result == TapHandlingInstruction.halt) {
-        // The custom tap handler doesn't want us to react at all
-        // to the tap.
-        return;
-      }
     }
 
     bool didTapOnExistingSelection = false;
@@ -875,12 +875,14 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
     final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
     editorGesturesLog.fine(" - tapped document position: $docPosition");
 
-    if (docPosition != null && widget.contentTapHandler != null) {
-      final result = widget.contentTapHandler!.onDoubleTap(docPosition);
-      if (result == TapHandlingInstruction.halt) {
-        // The custom tap handler doesn't want us to react at all
-        // to the tap.
-        return;
+    if (widget.contentTapHandlers != null && docPosition != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final result = handler.onDoubleTap(docPosition);
+        if (result == TapHandlingInstruction.halt) {
+          // The custom tap handler doesn't want us to react at all
+          // to the tap.
+          return;
+        }
       }
     }
 
@@ -949,12 +951,14 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
     final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
     editorGesturesLog.fine(" - tapped document position: $docPosition");
 
-    if (docPosition != null && widget.contentTapHandler != null) {
-      final result = widget.contentTapHandler!.onTripleTap(docPosition);
-      if (result == TapHandlingInstruction.halt) {
-        // The custom tap handler doesn't want us to react at all
-        // to the tap.
-        return;
+    if (widget.contentTapHandlers != null && docPosition != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final result = handler.onTripleTap(docPosition);
+        if (result == TapHandlingInstruction.halt) {
+          // The custom tap handler doesn't want us to react at all
+          // to the tap.
+          return;
+        }
       }
     }
 
@@ -988,7 +992,6 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
   void _showAndHideEditingControlsAfterTapSelection({
     required bool didTapOnExistingSelection,
   }) {
-    _controlsController!.hideSpellCheckerPopover();
     if (widget.selection.value == null) {
       // There's no selection. Hide all controls.
       _controlsController!
@@ -1022,7 +1025,6 @@ class _AndroidDocumentTouchInteractorState extends State<AndroidDocumentTouchInt
       } else {
         // The user tapped somewhere else in the document. Hide the toolbar.
         _controlsController!.hideToolbar();
-        _controlsController!.showSpellCheckerPopover(widget.selection.value!);
       }
     }
   }

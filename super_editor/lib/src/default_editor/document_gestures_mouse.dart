@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -48,7 +49,7 @@ class DocumentMouseInteractor extends StatefulWidget {
     required this.getDocumentLayout,
     required this.selectionNotifier,
     required this.selectionChanges,
-    this.contentTapHandler,
+    this.contentTapHandlers,
     required this.autoScroller,
     this.showDebugPaint = false,
     this.child,
@@ -64,7 +65,7 @@ class DocumentMouseInteractor extends StatefulWidget {
 
   /// Optional handler that responds to taps on content, e.g., opening
   /// a link when the user taps on text with a link attribution.
-  final ContentTapDelegate? contentTapHandler;
+  final List<ContentTapDelegate>? contentTapHandlers;
 
   /// Auto-scrolling delegate.
   final AutoScrollController autoScroller;
@@ -118,7 +119,11 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     widget.autoScroller
       ..addListener(_updateDragSelection)
       ..addListener(_updateMouseCursorAtLatestOffset);
-    widget.contentTapHandler?.addListener(_updateMouseCursorAtLatestOffset);
+    if (widget.contentTapHandlers != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        handler.addListener(_updateMouseCursorAtLatestOffset);
+      }
+    }
   }
 
   @override
@@ -142,15 +147,29 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
         ..addListener(_updateDragSelection)
         ..addListener(_updateMouseCursorAtLatestOffset);
     }
-    if (widget.contentTapHandler != oldWidget.contentTapHandler) {
-      oldWidget.contentTapHandler?.removeListener(_updateMouseCursorAtLatestOffset);
-      widget.contentTapHandler?.addListener(_updateMouseCursorAtLatestOffset);
+
+    if (!const DeepCollectionEquality().equals(oldWidget.contentTapHandlers, widget.contentTapHandlers)) {
+      if (oldWidget.contentTapHandlers != null) {
+        for (final handler in oldWidget.contentTapHandlers!) {
+          handler.removeListener(_updateMouseCursorAtLatestOffset);
+        }
+      }
+
+      if (widget.contentTapHandlers != null) {
+        for (final handler in widget.contentTapHandlers!) {
+          handler.addListener(_updateMouseCursorAtLatestOffset);
+        }
+      }
     }
   }
 
   @override
   void dispose() {
-    widget.contentTapHandler?.removeListener(_updateMouseCursorAtLatestOffset);
+    if (widget.contentTapHandlers != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        handler.removeListener(_updateMouseCursorAtLatestOffset);
+      }
+    }
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
@@ -255,12 +274,14 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
       return;
     }
 
-    if (widget.contentTapHandler != null) {
-      final result = widget.contentTapHandler!.onTap(docPosition);
-      if (result == TapHandlingInstruction.halt) {
-        // The custom tap handler doesn't want us to react at all
-        // to the tap.
-        return;
+    if (widget.contentTapHandlers != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final result = handler.onTap(docPosition);
+        if (result == TapHandlingInstruction.halt) {
+          // The custom tap handler doesn't want us to react at all
+          // to the tap.
+          return;
+        }
       }
     }
 
@@ -304,12 +325,14 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
     editorGesturesLog.fine(" - tapped document position: $docPosition");
 
-    if (docPosition != null && widget.contentTapHandler != null) {
-      final result = widget.contentTapHandler!.onDoubleTap(docPosition);
-      if (result == TapHandlingInstruction.halt) {
-        // The custom tap handler doesn't want us to react at all
-        // to the tap.
-        return;
+    if (docPosition != null && widget.contentTapHandlers != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final result = handler.onDoubleTap(docPosition);
+        if (result == TapHandlingInstruction.halt) {
+          // The custom tap handler doesn't want us to react at all
+          // to the tap.
+          return;
+        }
       }
     }
 
@@ -405,12 +428,14 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
     editorGesturesLog.fine(" - tapped document position: $docPosition");
 
-    if (docPosition != null && widget.contentTapHandler != null) {
-      final result = widget.contentTapHandler!.onTripleTap(docPosition);
-      if (result == TapHandlingInstruction.halt) {
-        // The custom tap handler doesn't want us to react at all
-        // to the tap.
-        return;
+    if (docPosition != null && widget.contentTapHandlers != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final result = handler.onTripleTap(docPosition);
+        if (result == TapHandlingInstruction.halt) {
+          // The custom tap handler doesn't want us to react at all
+          // to the tap.
+          return;
+        }
       }
     }
 
@@ -741,8 +766,17 @@ Updating drag selection:
       return;
     }
 
-    final cursorForContent = widget.contentTapHandler?.mouseCursorForContentHover(docPosition);
-    _mouseCursor.value = cursorForContent ?? SystemMouseCursors.text;
+    if (widget.contentTapHandlers != null) {
+      for (final handler in widget.contentTapHandlers!) {
+        final cursorForContent = handler.mouseCursorForContentHover(docPosition);
+        if (cursorForContent != null) {
+          _mouseCursor.value = cursorForContent;
+          return;
+        }
+      }
+    }
+
+    _mouseCursor.value = SystemMouseCursors.text;
   }
 
   @override
