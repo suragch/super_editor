@@ -115,7 +115,6 @@ class SuperEditor extends StatefulWidget {
     this.documentLayoutKey,
     Stylesheet? stylesheet,
     this.customStylePhases = const [],
-    this.prependedStylePhases = const [],
     this.appendedStylePhases = const [],
     List<ComponentBuilder>? componentBuilders,
     SelectionStyles? selectionStyle,
@@ -237,7 +236,15 @@ class SuperEditor extends StatefulWidget {
   /// knows how to interpret and apply table styles for your visual table component.
   final List<SingleColumnLayoutStylePhase> customStylePhases;
 
-  final List<SingleColumnLayoutStylePhase> prependedStylePhases;
+  /// Custom style phases that are added to the very end of the style phases.
+  ///
+  /// Typically, apps should use [customStylePhases]. However, the selection
+  /// styles are always applied after [customStylePhases]. If you need to
+  /// change the selection color, add the style phase that changes the selection
+  /// color here.
+  ///
+  /// For example, a spellchecker might want to override the selection color
+  /// for misspelled words.
   final List<SingleColumnLayoutStylePhase> appendedStylePhases;
 
   /// The `SuperEditor` input source, e.g., keyboard or Input Method Engine.
@@ -281,15 +288,6 @@ class SuperEditor extends StatefulWidget {
   /// A [ContentTapDelegate] might be used, for example, to launch a URL
   /// when a user taps on a link.
   final SuperEditorContentTapDelegateFactory? contentTapDelegateFactory;
-
-  /// Shows/hides a popover with spelling suggestions.
-  ///
-  /// A [SpellCheckerPopoverDelegate] must be attached to this controller
-  /// before it can be used.
-  ///
-  /// The `SpellingAndGrammarPlugin` provides a default implementation for
-  /// a [SpellCheckerPopoverDelegate].
-  //final SpellCheckerPopoverController? spellCheckerPopoverController;
 
   /// Leader links that connect leader widgets near the user's selection
   /// to carets, handles, and other things that want to follow the selection.
@@ -595,7 +593,6 @@ class SuperEditorState extends State<SuperEditor> {
       document: document,
       componentBuilders: widget.componentBuilders,
       pipeline: [
-        ...widget.prependedStylePhases,
         _docStylesheetStyler,
         _docLayoutPerComponentBlockStyler,
         ...widget.customStylePhases,
@@ -605,7 +602,8 @@ class SuperEditorState extends State<SuperEditor> {
             composingRegion: editContext.composer.composingRegion,
             showComposingUnderline: true,
           ),
-        // Selection changes are very volatile. Put that phase last
+        // Selection changes are very volatile. Put that phase last,
+        // just before the phases that the apps want to be at the end
         // to minimize view model recalculations.
         _docLayoutSelectionStyler,
         ...widget.appendedStylePhases,
@@ -1163,6 +1161,8 @@ abstract class SuperEditorPlugin {
   /// Additional overlay [SuperEditorLayerBuilder]s that will be added to a given [SuperEditor].
   List<SuperEditorLayerBuilder> get documentOverlayBuilders => [];
 
+  /// Optional handler that responds to taps on content, e.g., opening
+  /// a link when the user taps on text with a link attribution.
   ContentTapDelegate? get contentTapDelegate => null;
 }
 

@@ -155,11 +155,18 @@ class SuperEditorIosControlsController {
   /// Tells the caret to stop blinking by setting [shouldCaretBlink] to `false`.
   void doNotBlinkCaret() => _shouldCaretBlink.value = false;
 
+  /// {@macro are_selection_handles_allowed}
   ValueListenable<bool> get areSelectionHandlesAllowed => _areSelectionHandlesAllowed;
   final _areSelectionHandlesAllowed = ValueNotifier<bool>(true);
 
+  /// Temporarily prevents any selection handles from being displayed.
+  ///
+  /// Call this when you want to select some content, but don't want to show the drag handles.
+  /// [allowSelectionHandles] must be called to allow the drag handles to be displayed again.
   void allowSelectionHandles() => _areSelectionHandlesAllowed.value = true;
 
+  /// Allows the selection handles to be displayed after they have been temporarily
+  /// prevented by [preventSelectionHandles].
   void preventSelectionHandles() => _areSelectionHandlesAllowed.value = false;
 
   /// Controls the iOS floating cursor.
@@ -270,7 +277,7 @@ class IosDocumentTouchInteractor extends StatefulWidget {
   /// A callback that should open the software keyboard when invoked.
   final VoidCallback openSoftwareKeyboard;
 
-  /// Optional handler that responds to taps on content, e.g., opening
+  /// Optional list of handlers that respond to taps on content, e.g., opening
   /// a link when the user taps on text with a link attribution.
   final List<ContentTapDelegate>? contentTapHandlers;
 
@@ -711,10 +718,6 @@ class _IosDocumentTouchInteractorState extends State<IosDocumentTouchInteractor>
       } else {
         // The user tapped somewhere else in the document. Hide the toolbar.
         _controlsController!.hideToolbar();
-      }
-
-      if (!didTapOnExistingSelection) {
-        //_controlsController!.showSpellCheckerPopover(DocumentSelection.collapsed(position: adjustedSelectionPosition));
       }
 
       final tappedComponent = _docLayout.getComponentByNodeId(adjustedSelectionPosition.nodeId)!;

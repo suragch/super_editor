@@ -63,7 +63,7 @@ class DocumentMouseInteractor extends StatefulWidget {
   final Stream<DocumentSelectionChange> selectionChanges;
   final ValueListenable<DocumentSelection?> selectionNotifier;
 
-  /// Optional handler that responds to taps on content, e.g., opening
+  /// Optional list of handlers that respond to taps on content, e.g., opening
   /// a link when the user taps on text with a link attribution.
   final List<ContentTapDelegate>? contentTapHandlers;
 
