@@ -412,7 +412,6 @@ class SuperEditorAndroidHandlesDocumentLayerBuilder implements SuperEditorLayerB
         ]);
       },
       caretWidth: caretWidth,
-      areSelectionHandlesAllowed: SuperEditorAndroidControlsScope.rootOf(context).areSelectionHandlesAllowed,
       caretColor: caretColor,
     );
   }
@@ -1760,6 +1759,7 @@ class SuperEditorAndroidControlsOverlayManagerState extends State<SuperEditorAnd
           link: _controlsController!.collapsedHandleFocalPoint,
           leaderAnchor: Alignment.bottomCenter,
           followerAnchor: Alignment.topCenter,
+          showWhenUnlinked: false,
           // Use the offset to account for the invisible expanded touch region around the handle.
           offset: -Offset(0, AndroidSelectionHandle.defaultTouchRegionExpansion.top) *
               MediaQuery.devicePixelRatioOf(context),
@@ -1810,6 +1810,7 @@ class SuperEditorAndroidControlsOverlayManagerState extends State<SuperEditorAnd
             link: _controlsController!.upstreamHandleFocalPoint,
             leaderAnchor: Alignment.bottomLeft,
             followerAnchor: Alignment.topRight,
+            showWhenUnlinked: false,
             // Use the offset to account for the invisible expanded touch region around the handle.
             offset:
                 -AndroidSelectionHandle.defaultTouchRegionExpansion.topRight * MediaQuery.devicePixelRatioOf(context),
@@ -1842,6 +1843,7 @@ class SuperEditorAndroidControlsOverlayManagerState extends State<SuperEditorAnd
             link: _controlsController!.downstreamHandleFocalPoint,
             leaderAnchor: Alignment.bottomRight,
             followerAnchor: Alignment.topLeft,
+            showWhenUnlinked: false,
             // Use the offset to account for the invisible expanded touch region around the handle.
             offset:
                 -AndroidSelectionHandle.defaultTouchRegionExpansion.topLeft * MediaQuery.devicePixelRatioOf(context),
