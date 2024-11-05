@@ -685,7 +685,8 @@ class SuperReaderLaunchLinkTapHandler extends ContentTapDelegate {
   }
 
   @override
-  TapHandlingInstruction onTap(DocumentPosition tapPosition) {
+  TapHandlingInstruction onTap(DocumentTapDetails details) {
+    final tapPosition = details.position;
     final link = _getLinkAtPosition(tapPosition);
     if (link != null) {
       // The user tapped on a link. Launch it.
