@@ -244,21 +244,14 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     editorGesturesLog.info("Tap up on document");
     final docOffset = _getDocOffsetFromGlobalOffset(details.globalPosition);
     editorGesturesLog.fine(" - document offset: $docOffset");
-    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
-    editorGesturesLog.fine(" - tapped document position: $docPosition");
 
     _focusNode.requestFocus();
-
-    if (docPosition == null) {
-      editorGesturesLog.fine("No document content at ${details.globalPosition}.");
-      _clearSelection();
-      return;
-    }
 
     if (widget.contentTapHandler != null) {
       final result = widget.contentTapHandler!.onTap(
         DocumentTapDetails(
-          position: docPosition,
+          documentLayout: _docLayout,
+          layoutOffset: docOffset,
           globalOffset: details.globalPosition,
         ),
       );
@@ -267,6 +260,14 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
         // to the tap.
         return;
       }
+    }
+
+    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
+    editorGesturesLog.fine(" - tapped document position: $docPosition");
+    if (docPosition == null) {
+      editorGesturesLog.fine("No document content at ${details.globalPosition}.");
+      _clearSelection();
+      return;
     }
 
     final tappedComponent = _docLayout.getComponentByNodeId(docPosition.nodeId)!;
@@ -306,13 +307,12 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     editorGesturesLog.info("Double tap down on document");
     final docOffset = _getDocOffsetFromGlobalOffset(details.globalPosition);
     editorGesturesLog.fine(" - document offset: $docOffset");
-    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
-    editorGesturesLog.fine(" - tapped document position: $docPosition");
 
-    if (docPosition != null && widget.contentTapHandler != null) {
+    if (widget.contentTapHandler != null) {
       final result = widget.contentTapHandler!.onDoubleTap(
         DocumentTapDetails(
-          position: docPosition,
+          documentLayout: _docLayout,
+          layoutOffset: docOffset,
           globalOffset: details.globalPosition,
         ),
       );
@@ -323,6 +323,8 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
       }
     }
 
+    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
+    editorGesturesLog.fine(" - tapped document position: $docPosition");
     if (docPosition != null) {
       final tappedComponent = _docLayout.getComponentByNodeId(docPosition.nodeId)!;
       if (!tappedComponent.isVisualSelectionSupported()) {
@@ -412,13 +414,12 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     editorGesturesLog.info("Triple down down on document");
     final docOffset = _getDocOffsetFromGlobalOffset(details.globalPosition);
     editorGesturesLog.fine(" - document offset: $docOffset");
-    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
-    editorGesturesLog.fine(" - tapped document position: $docPosition");
 
-    if (docPosition != null && widget.contentTapHandler != null) {
+    if (widget.contentTapHandler != null) {
       final result = widget.contentTapHandler!.onTripleTap(
         DocumentTapDetails(
-          position: docPosition,
+          documentLayout: _docLayout,
+          layoutOffset: docOffset,
           globalOffset: details.globalPosition,
         ),
       );
@@ -429,6 +430,8 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
       }
     }
 
+    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
+    editorGesturesLog.fine(" - tapped document position: $docPosition");
     if (docPosition != null) {
       final tappedComponent = _docLayout.getComponentByNodeId(docPosition.nodeId)!;
       if (!tappedComponent.isVisualSelectionSupported()) {
